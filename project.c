@@ -351,12 +351,38 @@ void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData)
 
 void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
 {
+  // NOTE: bit representation could be inverted.
+  // To solve probelem switch array reference for A & B and change Aux bits
+  
+  // Short Hand for ALUOP BITS:
+  BIT A = ALUOp[0];
+  BIT B = ALUOp[1];
+  
+  // Hardcode First bit:
+  ALUControl[0] = FALSE;
+
+  // Auxilliary SOP BITS:
+  BIT is_add_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), not_gate(funct[3]), not_gate(funct[4])),not_gate(funct[5]));
+  BIT is_sub_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), not_gate(funct[3]), funct[4]),not_gate(funct[5]));
+  BIT is_and_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), funct[3], not_gate(funct[4])),not_gate(funct[5]));
+  BIT is_or_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), funct[3], not_gate(funct[4])), funct[5]);
+  BIT is_setless_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), funct[2]), not_gate(funct[3]), funct[4]),not_gate(funct[5]));
+  
+  // Second bit SOP:
+  ALUControl[1] = or_gate3(and_gate(not_gate(A), B), and_gate3(A, not_gate(B), is_sub_funct), and_gate3(A, not_gate(B), is_setless_funct));
+
+  // Third bit SOP:
+  ALUControl[2] = or_gate3( or_gate(or_gate(and_gate(not_gate(A),not_gate(B)), and_gate(not_gate(A),B)), and_gate3(A, not_gate(B), is_add_funct)), and_gate3(A, not_gate(B), is_sub_funct), and_gate3(A, not_gate(B), is_setless_funct));
+
+  // Forth bit SOp:
+  ALUControl[3] = or_gate(and_gate3(A, not_gate(B), is_or_funct), and_gate3(A, not_gate(B), is_setless_funct))
+
+
   // TODO: Implement ALU Control circuit
   // Input: 2-bit ALUOp from main control circuit, 6-bit funct field from the
   //        binary instruction
   // Output:4-bit ALUControl for input into the ALU
   // Note: Can use SOP or similar approaches to determine bits
-  
 }
 
 void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
