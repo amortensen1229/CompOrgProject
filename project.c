@@ -238,6 +238,37 @@ int binary_to_integer(BIT* A)
 
 // TODO: Implement any helper functions to assist with parsing
 
+void set_register(char* input, char* output) {
+  char tmp[256];
+  if(strcmp(input, "zero") == 0) { //0
+    strcpy(output, "00000");
+  } else if(strcmp(input, "v0") == 0) { //2
+    convert_to_binary_char(2, tmp, 5);
+    strcpy(output, tmp);
+  } else if(strcmp(input, "a0") == 0) { //4
+    convert_to_binary_char(4, tmp, 5);
+    strcpy(output, tmp); 
+  } else if(strcmp(input, "t0") == 0) { //8
+    convert_to_binary_char(8, tmp, 5);
+    strcpy(output, tmp);  
+  } else if(strcmp(input, "t1") == 0) { //9
+    convert_to_binary_char(9, tmp, 5);
+    strcpy(output, tmp);
+  } else if(strcmp(input, "s0") == 0) { //16
+    convert_to_binary_char(16, tmp, 5);
+    strcpy(output, tmp);
+  } else if(strcmp(input, "s1") == 0) { //17
+    convert_to_binary_char(17, tmp, 5);
+    strcpy(output, tmp);
+  } else if(strcmp(input, "sp") == 0) { //29
+    convert_to_binary_char(29, tmp, 5);
+    strcpy(output, tmp);
+  } else if(strcmp(input, "ra") == 0) { //31
+    convert_to_binary_char(31, tmp, 5);
+    strcpy(output, tmp);
+  }
+}
+
 int get_instructions(BIT Instructions[][32])
 {
   char line[256] = {0};
@@ -255,7 +286,58 @@ int get_instructions(BIT Instructions[][32])
     // - Convert immediate field and jump address field to binary
     // - Use registers to get rt, rd, rs fields
     // Note: I parse everything as strings, then convert to BIT array at end
-  
+
+    //Setting up input and output variables
+    BIT output[32] = {FALSE};
+    char inst[256] = {0};
+    char op1[256] = {0};
+    char op2[256] = {0};
+    char op3[256] = {0};
+    //loading the instruction into variables
+    sscanf(line, "%s %s %s %s", inst, op1, op2, op3);
+
+    char tmp_out[256] = {0};
+    char rs[256] = {0};
+    char rt[256] = {0};
+    char rd[256] = {0};
+    char imm[256] = {0};
+    char address[256] = {0};
+
+    //I-Type:
+    //    Instr: op rt rs imm
+    //    Bin: op rs rt imm 
+    //R-Type: 
+    //    Instr: op rd rs rt 
+    //    Bin: op rs rt rd shamt funct 
+    //J-Type: op address
+
+    //figure out the type of instruction
+    if(strcmp(inst, "lw") == 0) { //I-Type
+      convert_to_binary_char(atoi(op3), imm, 16);
+
+    } else if(strcmp(inst, "sw") == 0) { //I-Type
+
+    } else if(strcmp(inst, "beq") == 0) { //I-Type
+      
+    } else if(strcmp(inst, "addi") == 0) { //I-Type
+      
+    } else if(strcmp(inst, "and") == 0) { //R-Type
+      
+    } else if(strcmp(inst, "or") == 0) { //R-Type
+      
+    } else if(strcmp(inst, "add") == 0) { //R-Type
+      
+    } else if(strcmp(inst, "sub") == 0) { //R-Type
+      
+    } else if(strcmp(inst, "slt") == 0) { //R-Type
+      
+    } else if(strcmp(inst, "j") == 0) { //J-Type
+      
+    } else if(strcmp(inst, "jal") == 0) { //J-Type
+      
+    } else if(strcmp(inst, "jr") == 0) { //R-Type
+      
+    }
   }
   
   return instruction_count;
@@ -375,7 +457,7 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   ALUControl[2] = or_gate3( or_gate(or_gate(and_gate(not_gate(A),not_gate(B)), and_gate(not_gate(A),B)), and_gate3(A, not_gate(B), is_add_funct)), and_gate3(A, not_gate(B), is_sub_funct), and_gate3(A, not_gate(B), is_setless_funct));
 
   // Forth bit SOp:
-  ALUControl[3] = or_gate(and_gate3(A, not_gate(B), is_or_funct), and_gate3(A, not_gate(B), is_setless_funct))
+  ALUControl[3] = or_gate(and_gate3(A, not_gate(B), is_or_funct), and_gate3(A, not_gate(B), is_setless_funct));
 
 
   // TODO: Implement ALU Control circuit
