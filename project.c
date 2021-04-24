@@ -244,28 +244,28 @@ void set_register(char* input, char* output) {
     strcpy(output, "00000");
   } else if(strcmp(input, "v0") == 0) { //2
     convert_to_binary_char(2, tmp, 5);
-    strcpy(output, tmp);
+    strncpy(output, tmp, 5);
   } else if(strcmp(input, "a0") == 0) { //4
     convert_to_binary_char(4, tmp, 5);
-    strcpy(output, tmp); 
+    strncpy(output, tmp, 5); 
   } else if(strcmp(input, "t0") == 0) { //8
     convert_to_binary_char(8, tmp, 5);
-    strcpy(output, tmp);  
+    strncpy(output, tmp, 5);  
   } else if(strcmp(input, "t1") == 0) { //9
     convert_to_binary_char(9, tmp, 5);
-    strcpy(output, tmp);
+    strncpy(output, tmp, 5);
   } else if(strcmp(input, "s0") == 0) { //16
     convert_to_binary_char(16, tmp, 5);
-    strcpy(output, tmp);
+    strncpy(output, tmp, 5);
   } else if(strcmp(input, "s1") == 0) { //17
     convert_to_binary_char(17, tmp, 5);
-    strcpy(output, tmp);
+    strncpy(output, tmp, 5);
   } else if(strcmp(input, "sp") == 0) { //29
     convert_to_binary_char(29, tmp, 5);
-    strcpy(output, tmp);
+    strncpy(output, tmp, 5);
   } else if(strcmp(input, "ra") == 0) { //31
     convert_to_binary_char(31, tmp, 5);
-    strcpy(output, tmp);
+    strncpy(output, tmp, 5);
   }
 }
 
@@ -312,31 +312,63 @@ int get_instructions(BIT Instructions[][32])
     //J-Type: op address
 
     //figure out the type of instruction
-    if(strcmp(inst, "lw") == 0) { //I-Type
-      convert_to_binary_char(atoi(op3), imm, 16);
+    if(strcmp(inst, "lw") == 0 || strcmp(inst, "sw") == 0 ||
+       strcmp(inst, "beq") == 0 || strcmp(inst, "addi") == 0) 
+    {  //I-Type
+        convert_to_binary_char(atoi(op3), imm, 16);
+        set_register(op1, rt);
+        set_register(op2, rs);
+        strncpy(&tmp_out[0], imm, 16);
+        strncpy(&tmp_out[16], rt, 5);
+        strncpy(&tmp_out[21], rs, 5); 
 
-    } else if(strcmp(inst, "sw") == 0) { //I-Type
+      if(strcmp(inst, "lw") == 0)
+        strncpy(&tmp_out[26], "110001", 6);
+      else if(strcmp(inst, "sw") == 0)
+        strncpy(&tmp_out[26], "110101", 6);
+      else if(strcmp(inst, "beq") == 0)
+        strncpy(&tmp_out[26], "001000", 6);
+      else if(strcmp(inst, "addi") == 0)
+        strncpy(&tmp_out[26], "000100", 6);
+      
+    }
+    else if(strcmp(inst, "and") == 0 || strcmp(inst, "or") == 0 ||
+            strcmp(inst, "add") == 0 || strcmp(inst, "sub") == 0 ||
+            strcmp(inst, "slt") == 0 || strcmp(inst, "jr") == 0)
+    { //R_Type
+      set_register(op1, rd);
+      set_register(op2, rs);
+      set_register(op3, rt);
 
-    } else if(strcmp(inst, "beq") == 0) { //I-Type
-      
-    } else if(strcmp(inst, "addi") == 0) { //I-Type
-      
-    } else if(strcmp(inst, "and") == 0) { //R-Type
-      
-    } else if(strcmp(inst, "or") == 0) { //R-Type
-      
-    } else if(strcmp(inst, "add") == 0) { //R-Type
-      
-    } else if(strcmp(inst, "sub") == 0) { //R-Type
-      
-    } else if(strcmp(inst, "slt") == 0) { //R-Type
-      
-    } else if(strcmp(inst, "j") == 0) { //J-Type
-      
-    } else if(strcmp(inst, "jal") == 0) { //J-Type
-      
-    } else if(strcmp(inst, "jr") == 0) { //R-Type
-      
+
+      strncpy(&tmp_out[6], "00000", 5);
+
+      strncpy(&tmp_out[11], rd, 5);
+      strncpy(&tmp_out[16], rt, 5);
+      strncpy(&tmp_out[21], rs, 5);
+
+      if(strcmp(inst, "and") == 0) 
+        strncpy(&tmp_out[26], "001001", 6); 
+      else if(strcmp(inst, "or") == 0) 
+        strncpy(&tmp_out[26], "101001", 6); 
+      else if(strcmp(inst, "add") == 0) 
+        strncpy(&tmp_out[26], "000000", 6); 
+      else if(strcmp(inst, "sub") == 0) 
+        strncpy(&tmp_out[26], "100000", 6); 
+      else if(strcmp(inst, "slt") == 0) 
+        strncpy(&tmp_out[26], "010101", 6); 
+      else if(strcmp(inst, "jr") == 0) 
+        strncpy(&tmp_out[26], "000100", 6);
+    }
+    else if(strcmp(inst, "j") == 0 || strcmp(inst, "jal") == 0)
+    { //J-Type
+      convert_to_binary_char(atoi(op1), address, 26);
+
+      if(strcmp(inst, "j") == 0)
+        strncpy(&tmp_out[26], "010000", 6);  
+      else if(strcmp(inst, "jal") == 0)
+        strncpy(&tmp_out[26], "000011", 6);  
+     
     }
   }
   
