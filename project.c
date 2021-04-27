@@ -239,34 +239,28 @@ int binary_to_integer(BIT* A)
 // TODO: Implement any helper functions to assist with parsing
 
 void set_register(char* input, char* output) {
-  char tmp[256];
-  if(strcmp(input, "zero") == 0) { //0
-    strcpy(output, "00000");
-  } else if(strcmp(input, "v0") == 0) { //2
+  char tmp[256] = "";
+
+  if(strcmp(input, "zero") == 0) //0
+    convert_to_binary_char(0, tmp, 5);
+  else if(strcmp(input, "v0") == 0) //2
     convert_to_binary_char(2, tmp, 5);
-    strncpy(output, tmp, 5);
-  } else if(strcmp(input, "a0") == 0) { //4
+  else if(strcmp(input, "a0") == 0)  //4
     convert_to_binary_char(4, tmp, 5);
-    strncpy(output, tmp, 5); 
-  } else if(strcmp(input, "t0") == 0) { //8
+  else if(strcmp(input, "t0") == 0)  //8
     convert_to_binary_char(8, tmp, 5);
-    strncpy(output, tmp, 5);  
-  } else if(strcmp(input, "t1") == 0) { //9
+  else if(strcmp(input, "t1") == 0)  //9
     convert_to_binary_char(9, tmp, 5);
-    strncpy(output, tmp, 5);
-  } else if(strcmp(input, "s0") == 0) { //16
+  else if(strcmp(input, "s0") == 0)  //16
     convert_to_binary_char(16, tmp, 5);
-    strncpy(output, tmp, 5);
-  } else if(strcmp(input, "s1") == 0) { //17
+  else if(strcmp(input, "s1") == 0)  //17
     convert_to_binary_char(17, tmp, 5);
-    strncpy(output, tmp, 5);
-  } else if(strcmp(input, "sp") == 0) { //29
+  else if(strcmp(input, "sp") == 0)  //29
     convert_to_binary_char(29, tmp, 5);
-    strncpy(output, tmp, 5);
-  } else if(strcmp(input, "ra") == 0) { //31
+  else if(strcmp(input, "ra") == 0)  //31
     convert_to_binary_char(31, tmp, 5);
-    strncpy(output, tmp, 5);
-  }
+  
+  strncpy(output, tmp, 5);
 }
 
 int get_instructions(BIT Instructions[][32])
@@ -296,12 +290,12 @@ int get_instructions(BIT Instructions[][32])
     //loading the instruction into variables
     sscanf(line, "%s %s %s %s", inst, op1, op2, op3);
 
-    char tmp_out[256] = {0};
-    char rs[256] = {0};
-    char rt[256] = {0};
-    char rd[256] = {0};
-    char imm[256] = {0};
-    char address[256] = {0};
+    char tmp_out[33] = {0};
+    char rs[6] = {0};
+    char rt[6] = {0};
+    char rd[6] = {0};
+    char imm[17] = {0};
+    char address[27] = {0};
 
     //I-Type:
     //    Instr: op rt rs imm
@@ -339,37 +333,48 @@ int get_instructions(BIT Instructions[][32])
       set_register(op1, rd);
       set_register(op2, rs);
       set_register(op3, rt);
-
-
+      
       strncpy(&tmp_out[6], "00000", 5);
-
       strncpy(&tmp_out[11], rd, 5);
       strncpy(&tmp_out[16], rt, 5);
       strncpy(&tmp_out[21], rs, 5);
 
-      if(strcmp(inst, "and") == 0) 
+      if(strcmp(inst, "and") == 0) {
+        strncpy(&tmp_out[0], "001001", 6);
         strncpy(&tmp_out[26], "001001", 6); 
-      else if(strcmp(inst, "or") == 0) 
+      } else if(strcmp(inst, "or") == 0) {
+        strncpy(&tmp_out[0], "101001", 6);
         strncpy(&tmp_out[26], "101001", 6); 
-      else if(strcmp(inst, "add") == 0) 
+      } else if(strcmp(inst, "add") == 0) {
+        strncpy(&tmp_out[0], "000001", 6);
         strncpy(&tmp_out[26], "000000", 6); 
-      else if(strcmp(inst, "sub") == 0) 
+      } else if(strcmp(inst, "sub") == 0) {
+        strncpy(&tmp_out[0], "010001", 6);
         strncpy(&tmp_out[26], "100000", 6); 
-      else if(strcmp(inst, "slt") == 0) 
+      } else if(strcmp(inst, "slt") == 0) {
+        strncpy(&tmp_out[0], "010101", 6);
         strncpy(&tmp_out[26], "010101", 6); 
-      else if(strcmp(inst, "jr") == 0) 
+      } else if(strcmp(inst, "jr") == 0) {
+        strncpy(&tmp_out[0], "000001", 6);
         strncpy(&tmp_out[26], "000100", 6);
+      }
     }
     else if(strcmp(inst, "j") == 0 || strcmp(inst, "jal") == 0)
     { //J-Type
       convert_to_binary_char(atoi(op1), address, 26);
+      strncpy(&tmp_out[0], address, 26);
 
       if(strcmp(inst, "j") == 0)
         strncpy(&tmp_out[26], "010000", 6);  
       else if(strcmp(inst, "jal") == 0)
         strncpy(&tmp_out[26], "000011", 6);  
-     
     }
+
+    for (int i = 0; i < 32; ++i)
+      output[i] = (tmp_out[i] == '1' ? TRUE : FALSE); 
+
+    Instructions[instruction_count] = output;
+    ++instruction_count;
   }
   
   return instruction_count;
@@ -476,11 +481,11 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   ALUControl[0] = FALSE;
 
   // Auxilliary SOP BITS:
-  BIT is_add_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), not_gate(funct[3]), not_gate(funct[4])),not_gate(funct[5]));
-  BIT is_sub_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), not_gate(funct[3]), funct[4]),not_gate(funct[5]));
-  BIT is_and_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), funct[3], not_gate(funct[4])),not_gate(funct[5]));
-  BIT is_or_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), funct[3], not_gate(funct[4])), funct[5]);
-  BIT is_setless_funct = and_gate2(and_gate3(and_gate3(funct[0], not_gate(funct[1]), funct[2]), not_gate(funct[3]), funct[4]),not_gate(funct[5]));
+  BIT is_add_funct = and_gate(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), not_gate(funct[3]), not_gate(funct[4])),not_gate(funct[5]));
+  BIT is_sub_funct = and_gate(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), not_gate(funct[3]), funct[4]),not_gate(funct[5]));
+  BIT is_and_funct = and_gate(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), funct[3], not_gate(funct[4])),not_gate(funct[5]));
+  BIT is_or_funct = and_gate(and_gate3(and_gate3(funct[0], not_gate(funct[1]), not_gate(funct[2])), funct[3], not_gate(funct[4])), funct[5]);
+  BIT is_setless_funct = and_gate(and_gate3(and_gate3(funct[0], not_gate(funct[1]), funct[2]), not_gate(funct[3]), funct[4]),not_gate(funct[5]));
   
   // Second bit SOP:
   ALUControl[1] = or_gate3(and_gate(not_gate(A), B), and_gate3(A, not_gate(B), is_sub_funct), and_gate3(A, not_gate(B), is_setless_funct));
