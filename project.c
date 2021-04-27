@@ -373,7 +373,8 @@ int get_instructions(BIT Instructions[][32])
     for (int i = 0; i < 32; ++i)
       output[i] = (tmp_out[i] == '1' ? TRUE : FALSE); 
 
-    Instructions[instruction_count] = output;
+    for (int i = 0; i < 32; ++i)
+      Instructions[instruction_count][i] = output[i]; 
     ++instruction_count;
   }
   
