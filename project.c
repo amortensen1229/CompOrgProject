@@ -323,6 +323,52 @@ void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
   BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite)
 {
+  // OpCode Shorthand
+  BIT A = OpCode[0];
+  BIT B = OpCode[1];
+  BIT C = OpCode[2];
+  BIT D = OpCode[3];
+  BIT E = OpCode[4];
+  BIT F = OpCode[5];
+  
+  //Defining instructions opcodes
+  BIT is_lw = and_gate(and_gate3(A, not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, F));
+  BIT is_sw = and_gate(and_gate3(A,not_gate(B), C), and_gate3(not_gate(D), E ,F));
+  BIT is_beq = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(D, not_gate(E), not_gate(F)));
+  BIT is_addi = and_gate(and_gate3(not_gate(A), not_gate(B), C), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+
+  BIT is_j = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, not_gate(F)));
+  BIT is_jal = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, F));
+  BIT is_jr = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+
+  BIT is_and = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_or =  and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_add = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_sub = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_slt = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+
+  // Determine format type
+  BIT is_r_format = or_gate(or_gate3(is_and, is_or, is_add), and_gate3(is_sub, is_slt, is_jr));
+  BIT is_j_format = or_gate(is_j, is_jal);
+  BIT is_i_format = or_gate(or_gate3(is_lw, is_sw, is_beq), is_addi);
+
+  // still need to impliment... ALUsrc, Zero, 
+
+
+  //SOP Representation:
+  *RegDst = is_r_format;
+  *Jump = is_j;
+  *Branch = is_beq;
+  *MemRead = is_lw;
+  *MemToReg = or_gate3(or_gate3(is_and, is_or, is_add), or_gate3(is_add, is_sub, is_slt), is_lw); // same as RegWrite?
+  *MemWrite = is_sw;
+  *RegWrite = or_gate3(or_gate3(is_and, is_or, is_add), or_gate3(is_add, is_sub, is_slt), is_lw);
+  
+ 
+
+
+
+
   // TODO: Set control bits for everything
   // Input: opcode field from the instruction
   // OUtput: all control lines get set 
