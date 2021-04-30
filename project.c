@@ -590,6 +590,168 @@ void updateState()
   // Memory - read/write data memory
   // Write Back - write to the register file
   // Update PC - determine the final PC value for the next instruction
+
+BIT Instruction[32];
+    BIT funct[6];
+    BIT ReadRegister1In[5];
+    BIT ReadRegister2In[5];
+    BIT WriteRegisterIn[5];
+    BIT ReadData1[32];
+    BIT ReadData2[32];
+    BIT signExtendInput[16];
+    BIT signExtendOutput[32];
+    BIT ReadDataMemory[32];
+    for(int i = 0; i < 32; i ++ ){
+        Instruction_Memory(MEM_Instruction[i], Instruction);
+        for(int k = 0; k < 5; k++){
+
+
+            //Indstruction [25 -21]
+            ReadRegister1In[k] = Instruction[k + 21];
+            //Instrucion [20-16]
+            ReadRegister2In[k] = Instruction[k+ 16];
+
+            //Instruction[15-11]
+            WriteRegisterIn[k] = Instruction[k+11];
+
+        }
+
+        //BIT WriteOutput =  multiplexor2(RegDst, ReadRegister2, WriteRegister);
+
+        Read_Register(ReadRegister1In,ReadRegister2In,ReadData1,ReadData2);
+
+
+        //ALU Operation BITs
+        BIT ALU_Op[2];
+
+        //funct [5-0]
+        for(int j = 0; j < 6; j++){
+            funct[j] = Instruction[j];
+
+        }
+
+
+
+        for(int i = 0; i < 16; i++){
+            signExtendInput[i] = Instruction[i];
+        }
+        Extend_Sign16(signExtendInput, signExtendOutput );
+
+
+        //ALU control output
+        BIT ALUControlOuput[4];
+
+        ALU_Control(ALU_Op,funct,ALUControlOuput);
+
+
+        //ALU
+
+        //getting the inputs for ALU
+        //results
+        BIT ALUResult[32];
+        BIT muxOutput[32];
+
+       /* for(int i = 0; i < 32; i++){
+          muxOutput[i] = multiplexor2(ALUSrc, ReadData2[i],signExtendOutput[i]);
+
+
+}*/
+
+        multiplexor2_32(ALUSrc, ReadData2, signExtendOutput, muxOutput);
+        //BIT aluInput2 = multiplexor2(ALUSrc, ReadData2,signExtendOutput);
+        ALU(ALUControlOuput, muxOutput, ReadData1, ZERO ,  ALUResult);
+        
+
+
+
+        Data_Memory(MemWrite, MemRead, ALUResult, ReadData2,ReadDataMemory);
+        
+        BIT mux_dataMem[32];
+
+        
+         multiplexor2_32(MemToReg, ReadDataMemory, ALUResult, mux_dataMem);
+        //mux_dataMem = multiplexor2(MemToReg, ReadDataMemory, ALUResult);
+
+        BIT writeRegister[32];
+        BIT writeData[32];
+
+        for(int i = 0; i < 32; i++){
+          writeData[i] = mux_dataMem[i];
+        }
+
+
+
+
+        /*for(int i = 0; i < 32; i++){
+           writeRegister[i] = multiplexor2(RegDst,ReadData2[i],WriteRegisterIn[i] );
+
+        }*/
+
+        multiplexor2_32(RegDst, ReadData2, WriteRegisterIn, writeRegister);
+  
+       //determine the final PC value for the next instruction 
+
+     BIT output; 
+     output =  and_gate(Zero,Branch);
+     BIT res; 
+      BIT one[32] = {FALSE, FALSE, FALSE, FALSE, 
+       FALSE, FALSE, FALSE, FALSE,
+       FALSE, FALSE, FALSE, FALSE, 
+     FALSE, FALSE, FALSE, FALSE,
+       FALSE, FALSE, FALSE, FALSE,
+       FALSE, FALSE, 
+      FALSE, FALSE, 
+       FALSE, FALSE, FALSE, FALSE,
+       FALSE,FALSE,FALSE,TRUE}; 
+
+       BIT OpAlu[4] = {0, 0, 1, 0}; 
+      
+      BIT Zero_temp[32]; 
+      BIT PC_temp[32]; 
+
+      //PC _temp = PC + 1 
+    ALU( OpAlu, PC,one , Zero_temp, PC_temp);
+
+
+     BIT ALU_result[32];
+
+    ALU(OpAlu, signExtendOutput,PC_temp, Zero_temp, ALU_result ); 
+    BIT mux_out[32]; 
+
+    /*for(int i = 0; i< 32; i++){
+       mux_out[i] = multiplexor2(output,PC_temp[i], ALU_result[i]); 
+    }*/
+
+    multiplexor2_32(output, PC_temp, ALU_result, mux_out);
+    
+    BIT mux_output_arr[32]; 
+    multiplexor2_32(Jump, PC_temp ,mux_out, mux_output_arr);  
+
+  
+     
+
+    // multiplexor2(output, res, FALSE);
+   for(int i = 0; i < 32; i++){
+     PC[i] = PC_temp[i];
+   }
+      
+          
+       
+
+       
+       
+     
+    
+
+
+
+
+
+
+
+
+    }
+
   
 }
 
