@@ -137,6 +137,37 @@ void decoder2(BIT I0, BIT I1, BIT* O0, BIT* O1, BIT* O2, BIT* O3)
   
   return;
 }
+void decoder3(BIT* I, BIT EN, BIT* O)
+{
+  O[0] = and_gate3(not_gate(I[2]), not_gate(I[1]), not_gate(I[0]));
+  O[1] = and_gate3(not_gate(I[2]), not_gate(I[1]), I[0]);
+  O[2] = and_gate3(not_gate(I[2]), I[1], not_gate(I[0]));
+  O[3] = and_gate3(not_gate(I[2]), I[1], I[0]);
+  O[4] = and_gate3(I[2], not_gate(I[1]), not_gate(I[0]));
+  O[5] = and_gate3(I[2], not_gate(I[1]), I[0]);
+  O[6] = and_gate3(I[2], I[1], not_gate(I[0]));
+  O[7] = and_gate3(I[2], I[1], I[0]);
+  
+  O[0] = and_gate(EN, O[0]);
+  O[1] = and_gate(EN, O[1]);
+  O[2] = and_gate(EN, O[2]);
+  O[3] = and_gate(EN, O[3]);
+  O[4] = and_gate(EN, O[4]);
+  O[5] = and_gate(EN, O[5]);
+  O[6] = and_gate(EN, O[6]);
+  O[7] = and_gate(EN, O[7]);
+  
+  return;
+}
+void decoder5(BIT* I, BIT* O)
+{
+   BIT EN[4] = {FALSE};
+   decoder2(I[3], I[4], &EN[0], &EN[1], &EN[2], &EN[3]);
+   decoder3(I, EN[3], &O[24]);
+   decoder3(I, EN[2], &O[16]);
+   decoder3(I, EN[1], &O[8]);
+   decoder3(I, EN[0], &O[0]);
+}
 
 BIT multiplexor2(BIT S, BIT I0, BIT I1)
 {
@@ -438,6 +469,19 @@ void Instruction_Memory(BIT* ReadAddress, BIT* Instruction)
   // Note: Useful to use a 5-to-32 decoder here
   
 }
+void adder1(BIT A, BIT B, BIT CarryIn, BIT* CarryOut, BIT* Sum)
+{
+  // TODO: implement a 1-bit adder
+  // Note: you can probably copy+paste this from your (or my) Lab 5 solution
+  // *Sum = xor_gate(xor_gate(A,B),CarryIn);
+  // *CarryOut = or_gate(and_gate(A,B),and_gate(CarryIn,xor_gate(A,B)));
+  BIT x0 = xor_gate(A, B);
+    *Sum = xor_gate(CarryIn, x0);
+    BIT y0 = and_gate(x0, CarryIn);
+    BIT y1 = and_gate(A, B);
+    *CarryOut = or_gate(y0, y1);
+  
+}
 
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
@@ -503,6 +547,8 @@ void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   // Input: two 5-bit register addresses
   // Output: the values of the specified registers in ReadData1 and ReadData2
   // Note: Implementation will be very similar to instruction memory circuit
+   decoder5(ReadRegister1,ReadData1);
+   decoder5(ReadRegister2,ReadData2);
   
 }
 
@@ -512,8 +558,15 @@ void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData)
   // Input: one 5-bit register address, data to write, and control bit
   // Output: None, but will modify register file
   // Note: Implementation will again be similar to those above
+  BIT O[32];
+  decoder5(WriteRegister,O);
+  for(int i=0;i<32;i++)
+  {
+    WriteData[i] = multiplexor2(RegWrite,WriteData[i],O[i]);
+  }
   
 }
+
 
 void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
 {
@@ -550,6 +603,22 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   // Output:4-bit ALUControl for input into the ALU
   // Note: Can use SOP or similar approaches to determine bits
 }
+void ALU1(BIT A, BIT B, BIT Binvert, BIT CarryIn, BIT Less, 
+  BIT Op0, BIT Op1, BIT Op2, BIT* Result, BIT* CarryOut, BIT* Set)
+{
+
+    BIT x0 = multiplexor2(Binvert, B, not_gate(B));
+    BIT y0 = and_gate(A, x0);
+    BIT y1 = or_gate(A, x0);
+    BIT y3 = and_gate(Less,*Set);
+    BIT y2 = FALSE;
+    adder1(A, x0, CarryIn, CarryOut, &y2);
+    *Set = y2;  
+    BIT Result1 = multiplexor4(Op0,Op1,y0,y1,y2,y3);
+    BIT Result2 = multiplexor4(Op0,Op1,0,0,0,0);
+    *Result = multiplexor2(Op2,Result1,Result2);
+  
+}
 
 void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
 {   
@@ -557,6 +626,21 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
   // Input: 4-bit ALUControl, two 32-bit inputs
   // Output: 32-bit result, and zero flag big
   // Note: Can re-use prior implementations (but need new circuitry for zero)
+  BIT Set=FALSE;
+  // BIT Less;
+  // BIT copy = CarryIn;
+  BIT carryout_temp = FALSE;
+  BIT Binvert;
+  Binvert = ALUControl[2];
+  BIT CarryIn = Binvert;
+  BIT copy = CarryIn;
+  for(int i=0;i<32;i++)
+  {
+    ALU1(Input1[i],Input2[i],Binvert,CarryIn,FALSE,ALUControl[2],ALUControl[1],ALUControl[0],&Result[i],&carryout_temp,&Set);
+    CarryIn = carryout_temp;//Setting carry ins to the previous carry out
+  }
+  ALU1(Input1[0],Input2[0],Binvert,copy,TRUE,ALUControl[2],ALUControl[1],ALUControl[0],&Result[0],&carryout_temp,&Set);
+  // *Zero = multiplexor2(,0,1)
   
 }
 
@@ -567,6 +651,15 @@ void Data_Memory(BIT MemWrite, BIT MemRead,
   // Input: 32-bit address, control flags for read/write, and data to write
   // Output: data read if processing a lw instruction
   // Note: Implementation similar as above
+  for(int i=0;i<32;i++)
+  {
+    WriteData[i] = multiplexor2(MemWrite,WriteData[i],Address[i]);
+  }
+
+  for(int i=0;i<32;i++)
+  {
+    ReadData[i] = multiplexor2(MemRead,ReadData[i],Address[i]);
+  }
   
 }
 
@@ -574,6 +667,16 @@ void Extend_Sign16(BIT* Input, BIT* Output)
 {
   // TODO: Implement 16-bit to 32-bit sign extender
   // Copy Input to Output, then extend 16th Input bit to 17-32 bits in Output
+  for(int i=0;i<16;i++)
+  {
+    Output[i] = Input[i];
+  }
+  BIT copy = Input[15];
+  for(int i=16;i<32;i++)
+  {
+    Output[i] = copy;
+  }
+
   
 }
 
@@ -737,17 +840,6 @@ BIT Instruction[32];
       
           
        
-
-       
-       
-     
-    
-
-
-
-
-
-
 
 
     }
