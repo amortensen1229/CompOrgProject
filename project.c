@@ -443,6 +443,9 @@ void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
   BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite)
 {
+
+
+
   // OpCode Shorthand
   BIT A = OpCode[0];
   BIT B = OpCode[1];
@@ -472,23 +475,28 @@ void Control(BIT* OpCode,
   BIT is_j_format = or_gate(is_j, is_jal);
   BIT is_i_format = or_gate(or_gate3(is_lw, is_sw, is_beq), is_addi);
 
-  // still need to impliment... ALUsrc, Zero, 
+  // How to set zero, and ALUSrc? Zero is result from ALU and How to tell if second input is addi?
+  // immidate --> lw, sw, addi, beq --> set ALUsrc
+  // zero wont be set within control -> work with ALU part, zero as additional input to ALU function
+  // Additional Lines for: (add input parameters)
+  // jal determine if input to PC register
+  // jr
 
+  // Set ALUOp:
+  ALUOp[0] = or_gate(or_gate3(is_and, is_or, is_add), or_gate3(is_sub, is_slt));
+  ALUOp[1] = is_beq;
 
   //SOP Representation:
+  *ALUSrc = or_gate3(is_lw, is_sw, or_gate(is_addi, is_beq));
   *RegDst = is_r_format;
   *Jump = is_j;
   *Branch = is_beq;
-  *MemRead = is_lw;
-  *MemToReg = or_gate3(or_gate3(is_and, is_or, is_add), or_gate3(is_add, is_sub, is_slt), is_lw); // same as RegWrite?
+  *MemRead = is_lw; // maybe not supposed to be set the same??
+  *MemToReg = is_lw;
   *MemWrite = is_sw;
-  *RegWrite = or_gate3(or_gate3(is_and, is_or, is_add), or_gate3(is_add, is_sub, is_slt), is_lw);
+  *RegWrite = or_gate3(or_gate3(is_and, is_or, is_add), or_gate3(is_add, is_sub, is_slt), or_gate(is_lw, is_addi)); //include addi
   
  
-
-
-
-
   // TODO: Set control bits for everything
   // Input: opcode field from the instruction
   // OUtput: all control lines get set 
