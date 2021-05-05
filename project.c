@@ -370,20 +370,20 @@ int get_instructions(BIT Instructions[][32])
       strncpy(&tmp_out[16], rt, 5);
       strncpy(&tmp_out[21], rs, 5);
 
-      if(strcmp(inst, "and") == 0) {
+      if(strcmp(inst, "and") == 0) 
         strncpy(&tmp_out[0], "001001", 6);
-      } else if(strcmp(inst, "or") == 0) {
+      else if(strcmp(inst, "or") == 0) 
         strncpy(&tmp_out[0], "101001", 6);
-      } else if(strcmp(inst, "add") == 0) {
+      else if(strcmp(inst, "add") == 0) 
         strncpy(&tmp_out[0], "000001", 6);
-      } else if(strcmp(inst, "sub") == 0) {
+      else if(strcmp(inst, "sub") == 0) 
         strncpy(&tmp_out[0], "010001", 6);
-      } else if(strcmp(inst, "slt") == 0) {
+      else if(strcmp(inst, "slt") == 0) 
         strncpy(&tmp_out[0], "010101", 6);
-      } else if(strcmp(inst, "jr") == 0) {
+      else if(strcmp(inst, "jr") == 0) 
         strncpy(&tmp_out[0], "000001", 6);
-      }
-        strncpy(&tmp_out[26], "000000", 6); 
+      
+      strncpy(&tmp_out[26], "000000", 6); 
     }
     else if(strcmp(inst, "j") == 0 || strcmp(inst, "jal") == 0)
     { //J-Type
