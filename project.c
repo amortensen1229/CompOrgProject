@@ -340,7 +340,7 @@ int get_instructions(BIT Instructions[][32])
     //figure out the type of instruction
     if(strcmp(inst, "lw") == 0 || strcmp(inst, "sw") == 0 ||
        strcmp(inst, "beq") == 0 || strcmp(inst, "addi") == 0) 
-    {  //I-Type
+    {  //I-Type Bin: op rs rt imm 
         convert_to_binary_char(atoi(op3), imm, 16);
         set_register(op1, rt);
         set_register(op2, rs);
@@ -361,7 +361,7 @@ int get_instructions(BIT Instructions[][32])
     else if(strcmp(inst, "and") == 0 || strcmp(inst, "or") == 0 ||
             strcmp(inst, "add") == 0 || strcmp(inst, "sub") == 0 ||
             strcmp(inst, "slt") == 0 || strcmp(inst, "jr") == 0)
-    { //R_Type
+    { //R_Type Bin: op rs rt rd shamt funct 
       set_register(op1, rd);
       set_register(op2, rs);
       set_register(op3, rt);
@@ -387,7 +387,7 @@ int get_instructions(BIT Instructions[][32])
       strncpy(&tmp_out[26], "000000", 6); 
     }
     else if(strcmp(inst, "j") == 0 || strcmp(inst, "jal") == 0)
-    { //J-Type
+    { //J-Type Bin: op address
       convert_to_binary_char(atoi(op1), address, 26);
       strncpy(&tmp_out[0], address, 26);
 
