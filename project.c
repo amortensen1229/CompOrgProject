@@ -382,7 +382,7 @@ int get_instructions(BIT Instructions[][32])
       else if(strcmp(inst, "slt") == 0) 
         strncpy(&tmp_out[0], "010101", 6);
       else if(strcmp(inst, "jr") == 0) 
-        strncpy(&tmp_out[0], "000001", 6);
+        strncpy(&tmp_out[0], "000100", 6);
       
       strncpy(&tmp_out[26], "000000", 6); 
     }
@@ -394,7 +394,7 @@ int get_instructions(BIT Instructions[][32])
       if(strcmp(inst, "j") == 0)
         strncpy(&tmp_out[26], "010000", 6);  
       else if(strcmp(inst, "jal") == 0)
-        strncpy(&tmp_out[26], "000011", 6);  
+        strncpy(&tmp_out[26], "110000", 6);  
     }
 
     for (int i = 0; i < 32; ++i)
