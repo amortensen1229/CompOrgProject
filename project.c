@@ -524,12 +524,20 @@ void Control(BIT* OpCode,
   BIT is_j = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, not_gate(F)));
   //BIT is_jal = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, F));
   BIT is_jr = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
-
+  
+  /*
   BIT is_add = and_gate(and_gate3(and_gate3(F, not_gate(E), not_gate(D)), not_gate(C), not_gate(B)),not_gate(A));
   BIT is_sub = and_gate(and_gate3(and_gate3(not_gate(F), not_gate(E), not_gate(D)), not_gate(C), not_gate(B)),A);
   BIT is_and = and_gate(and_gate3(and_gate3(F, not_gate(E), not_gate(D)), C, not_gate(B)),not_gate(A));
   BIT is_or = and_gate(and_gate3(and_gate3(F, not_gate(E), not_gate(D)), C, not_gate(B)), A);
   BIT is_slt = and_gate(and_gate3(and_gate3(F, not_gate(E), D), not_gate(C), B),not_gate(A));
+  */
+
+  BIT is_and = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_or =  and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_add = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_sub = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
+  BIT is_slt = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
 
 
 
