@@ -61,7 +61,7 @@ int get_instructions(BIT Instructions[][32]);
 void Instruction_Memory(BIT* ReadAddress, BIT* Instruction);
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
-  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite);
+  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Immediate);
 void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   BIT* ReadData1, BIT* ReadData2);
 void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData);
@@ -435,7 +435,9 @@ BIT MemWrite  = FALSE;
 BIT ALUSrc    = FALSE;
 BIT RegWrite  = FALSE;
 BIT Zero      = FALSE;
+BIT Immediate = FALSE;
 BIT ALUControl[4] = {FALSE};
+BIT ReadDataMemory[32];
 
 void print_instruction()
 {
@@ -507,15 +509,15 @@ void adder1(BIT A, BIT B, BIT CarryIn, BIT* CarryOut, BIT* Sum)
 
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
-  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite)
+  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Immediate)
 {
   // OpCode Shorthand
-  BIT A = OpCode[0];
-  BIT B = OpCode[1];
-  BIT C = OpCode[2];
-  BIT D = OpCode[3];
-  BIT E = OpCode[4];
-  BIT F = OpCode[5];
+  BIT A = OpCode[5];
+  BIT B = OpCode[4];
+  BIT C = OpCode[3];
+  BIT D = OpCode[2];
+  BIT E = OpCode[1];
+  BIT F = OpCode[0];
   //printf("OpCODE: %d%d%d%d%d%d", F, E, D, C, B, A);
   
   BIT is_lw = and_gate(and_gate3(A, not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, F));
@@ -540,7 +542,6 @@ void Control(BIT* OpCode,
   BIT is_add = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
   BIT is_sub = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
   BIT is_slt = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
-
 
 
 
@@ -579,6 +580,7 @@ void Control(BIT* OpCode,
   */
   // Determine format type
   BIT is_r_format = or_gate(or_gate3(is_and, is_or, is_add), or_gate3(is_sub, is_slt, is_jr));
+
   //BIT is_j_format = or_gate(is_j, is_jal);
   //BIT is_i_format = or_gate(or_gate3(is_lw, is_sw, is_beq), is_addi);
 
@@ -590,10 +592,11 @@ void Control(BIT* OpCode,
   // jr
 
   // Set ALUOp:
-  ALUOp[0] = or_gate(or_gate3(is_and, is_or, is_add), or_gate(is_sub, is_slt));
-  ALUOp[1] = is_beq;
+  ALUOp[1] = or_gate(is_r_format, is_addi);
+  ALUOp[0] = is_beq;
 
   //SOP Representation:
+  *Immediate = is_addi;
   *ALUSrc = or_gate3(is_lw, is_sw, or_gate(is_addi, is_beq));
   *RegDst = is_r_format;
   *Jump = is_j;
@@ -622,10 +625,8 @@ void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   BIT index1[32];
   BIT index2[32];
 
-   decoder5(ReadRegister1,index1);
-           // printf("ReadData1: %d\n", binary_to_integer(ReadData1));
-
-   decoder5(ReadRegister2,index2);
+  decoder5(ReadRegister1,index1);
+  decoder5(ReadRegister2,index2);
   for(int i = 0;i < 32; i++) {
   for (int j = 0; j < 32; ++j){
       ReadData1[j] = multiplexor2(index1[i], ReadData1[j], MEM_Register[i][j]);
@@ -642,7 +643,7 @@ void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData)
   decoder5(WriteRegister, index);
   for(int i = 0;i < 32; i++) {
     for (int j = 0; j < 32; ++j){
-      MEM_Register[i][j] = multiplexor2(index[i], MEM_Register[i][j], WriteData[j]);
+      MEM_Register[i][j] = multiplexor2(and_gate(index[i], RegWrite), MEM_Register[i][j], WriteData[j]);
     }
   } 
 }
@@ -662,8 +663,8 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   
   BIT A = ALUOp[1];
   BIT B = ALUOp[0];
-  //printf("ALUOp[1]: %d\nALUOp[2]: %d\n", ALUOp[0], ALUOp[1]);
-  
+  //printf("ALUOp[1]: %d\nALUOp[2]: %d\n", A, B);
+  //printf("FUNCT: %d%d%d%d%d%d", funct[5], funct[4], funct[3], funct[2], funct[1], funct[0]);
   // Hardcode First bit:
   ALUControl[3] = FALSE;
 
@@ -748,22 +749,34 @@ void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
 
 }
 
+// Data_Memory(MemWrite, MemRead, ALUResult, ReadData2,ReadDataMemory);
 void Data_Memory(BIT MemWrite, BIT MemRead, 
   BIT* Address, BIT* WriteData, BIT* ReadData)
 {
+  BIT shorten_address[5];
+  BIT index[32];
+  for (int i = 5; i >= 0; --i) {
+    shorten_address[i] = Address[i];
+  }
+  decoder5(shorten_address, index);
+  for(int i = 0; i < 32; i++) {
+    for (int j = 0; j < 32; ++j){
+      MEM_Data[i][j] = multiplexor2(and_gate(index[i], MemWrite), MEM_Data[i][j], WriteData[j]);
+      ReadData[j] = multiplexor2(and_gate(index[i], MemRead), ReadData[j], MEM_Data[i][j]);
+    }
+  }
+  for (int i = 0; i < 32; ++i) {
+    ReadDataMemory[i] = ReadData[i];
+  }
+  //printf("Read in function: %d\n", binary_to_integer(ReadData));
+
+
+  //printf("Shortend: %d%d%d%d%d", shorten_address[4], shorten_address[3], shorten_address[2], shorten_address[1], shorten_address[0]);
+
   // TODO: Implement data memory
   // Input: 32-bit address, control flags for read/write, and data to write
   // Output: data read if processing a lw instruction
   // Note: Implementation similar as above
-  for(int i=0;i<32;i++)
-  {
-    WriteData[i] = multiplexor2(MemWrite,WriteData[i],Address[i]);
-  }
-
-  for(int i=0;i<32;i++)
-  {
-    ReadData[i] = multiplexor2(MemRead,ReadData[i],Address[i]);
-  }
   
 }
 
@@ -805,7 +818,6 @@ void updateState()
   BIT ReadData2[32];
   BIT signExtendInput[16];
   BIT signExtendOutput[32];
-  BIT ReadDataMemory[32];
   //BIT Instruction_Address[32];
   BIT OpCode[6];
   
@@ -827,29 +839,14 @@ void updateState()
     {
       OpCode[k-26] = Instruction[k];
     }
-    Control(OpCode,&RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp,  &MemWrite,  &ALUSrc,  &RegWrite);
-
-    //BIT WriteOutput =  multiplexor2_32(RegDst, ReadRegister2, WriteRegister);
-
-
+    Control(OpCode,&RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp,  &MemWrite,  &ALUSrc,  &RegWrite, &Immediate);
 
     Read_Register(ReadRegister1In,ReadRegister2In,ReadData1,ReadData2);
-        //printf("ReadData1: %d\n", binary_to_integer(ReadData1));
-
-
-
-    //ALU Operation BITs
-    BIT ALU_Op[2]; //THESE NEED TO BE DEFINED
 
     //funct [5-0]
     for(int j = 0; j < 6; j++){
       funct[j] = Instruction[j];
     }
-    //print_binary(Instruction);
-    ALU_Op[0] = Instruction[4];
-    ALU_Op[1] = Instruction[5];
-
-    //printf("ALUOp[1]: %d\nALUOp[2]: %d\n", Instruction[6], Instruction[7]);
 
     for(int i = 0; i < 16; i++){
       signExtendInput[i] = Instruction[i];
@@ -859,7 +856,11 @@ void updateState()
     //ALU control output
     BIT ALUControlOuput[4];
 
-    ALU_Control(ALU_Op,funct, ALUControlOuput);
+    ALU_Control(ALUOp,funct, ALUControlOuput);
+
+    ALUControlOuput[1] = multiplexor2(Immediate, ALUControlOuput[1], Immediate);
+    //printf("ALUControl_Output: ");
+    //printf("%d%d%d%d\n", ALUControlOuput[3], ALUControlOuput[2], ALUControlOuput[1], ALUControlOuput[0]);
 
     //getting the inputs for ALU
     //results
@@ -875,26 +876,23 @@ void updateState()
     ALU(ALUControlOuput, ReadData1, muxOutput, ZERO, ALUResult);
        // printf("ALU OUTPUT: %d\n", binary_to_integer(ALUResult));
 
-    
-    Data_Memory(MemWrite, MemRead, ALUResult, ReadData2,ReadDataMemory);
-    
-    BIT mux_dataMem[32]; 
-
-    multiplexor2_32(MemToReg, ReadDataMemory, ALUResult, mux_dataMem);
-    //mux_dataMem = multiplexor2(MemToReg, ReadDataMemory, ALUResult);
-
-    //BIT writeRegister[32];
-    //BIT writeData[32];
+    Data_Memory(MemWrite, MemRead, ALUResult, ReadData2, ReadDataMemory);
+      //printf("Read out function: %d\n");
+      //print_binary(ReadDataMemory);
+    //BIT mux_dataMem[32]; 
     BIT mux_output[5];
-
-    //This loop doesnt work, need to use to determine proper address to write to
-   // printf("REGDEST: %d\n", RegDst);
     for (int j = 0; j < 5; ++j) {
       mux_output[j] = multiplexor2(RegDst, ReadRegister2In[j], WriteRegisterIn[j]);
     }
     //printf("MUX output: %d%d%d%d%d\n",mux_output[4],mux_output[3],mux_output[2],mux_output[1],mux_output[0] );
-  
-    Write_Register(RegWrite, mux_output, ALUResult);
+    BIT temp[32];
+    //printf("Read: %d\n", binary_to_integer(ReadDataMemory));
+    //printf("MEMTOREG: %d\n", MemToReg);
+    for (int j = 0; j < 32; ++j) {
+      temp[j] = multiplexor2(MemToReg, ALUResult[j], ReadDataMemory[j]);
+    }
+    Write_Register(RegWrite, mux_output, temp);
+    //Write_Register(RegWrite, )
     // multiplexor2_32(MemToReg, ReadData2, WriteRegisterIn, writeRegister);
 
     //determine the final PC value for the next instruction 
@@ -926,14 +924,6 @@ void updateState()
     BIT mux_output_arr[32]; 
     multiplexor2_32(Jump, PC_temp ,mux_out, mux_output_arr);  
     // multiplexor2(output, res, FALSE);
-
-    //BIT PC_temp[32]; 
-    //BIT Zero_temp[32];
-    //BIT OpAlu[4] = {FALSE, TRUE, FALSE, FALSE}; 
-    //ALU(OpAlu, PC, ONE, Zero_temp, PC_temp);
-    //for(int i = 0; i < 32; i++){
-    //  PC[i] = PC_temp[i];
-    //} 
 }
 
 
