@@ -365,6 +365,9 @@ int get_instructions(BIT Instructions[][32])
       set_register(op1, rd);
       set_register(op2, rs);
       set_register(op3, rt);
+
+      if(strcmp(inst, "jr") == 0)
+        strcpy(rs, rd);
       
       strncpy(&tmp_out[6], "00000", 5);
       strncpy(&tmp_out[11], rd, 5);
@@ -403,12 +406,6 @@ int get_instructions(BIT Instructions[][32])
     for (int i = 0; i < 32; ++i)
       Instructions[instruction_count][i] = output[i]; 
     ++instruction_count;
-  }
-  for (int i = 0 ; i < 32; ++i) {
-    //printf("Instruction[%d]: ", i);
-    //print_binary(Instructions[i]);
-    //printf("\n");
-
   }
   
   return instruction_count;
