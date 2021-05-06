@@ -335,7 +335,8 @@ int get_instructions(BIT Instructions[][32])
     //R-Type: 
     //    Instr: op rd rs rt 
     //    Bin: op rs rt rd shamt funct 
-    //J-Type: op address
+    //J-Type: 
+    //    Bin/Instr: op address
 
     //figure out the type of instruction
     if(strcmp(inst, "lw") == 0 || strcmp(inst, "sw") == 0 ||
