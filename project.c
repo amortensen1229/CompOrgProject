@@ -342,8 +342,13 @@ int get_instructions(BIT Instructions[][32])
        strcmp(inst, "beq") == 0 || strcmp(inst, "addi") == 0) 
     {  //I-Type Bin: op rs rt imm 
         convert_to_binary_char(atoi(op3), imm, 16);
-        set_register(op1, rt);
-        set_register(op2, rs);
+        if(strcmp(inst, "beq") == 0) {
+          set_register(op2, rt);
+          set_register(op1, rs);
+        } else {
+          set_register(op1, rt);
+          set_register(op2, rs);
+        }
         strncpy(&tmp_out[0], imm, 16);
         strncpy(&tmp_out[16], rt, 5);
         strncpy(&tmp_out[21], rs, 5); 
