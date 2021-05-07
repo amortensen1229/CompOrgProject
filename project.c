@@ -335,7 +335,8 @@ int get_instructions(BIT Instructions[][32])
     //R-Type: 
     //    Instr: op rd rs rt 
     //    Bin: op rs rt rd shamt funct 
-    //J-Type: op address
+    //J-Type: 
+    //    Bin/Instr: op address
 
     //figure out the type of instruction
     if(strcmp(inst, "lw") == 0 || strcmp(inst, "sw") == 0 ||
@@ -349,18 +350,18 @@ int get_instructions(BIT Instructions[][32])
           set_register(op1, rt);
           set_register(op2, rs);
         }
-        strncpy(&tmp_out[0], imm, 16);
-        strncpy(&tmp_out[16], rt, 5);
-        strncpy(&tmp_out[21], rs, 5); 
+        memcpy(&tmp_out[0], imm, 16);
+        memcpy(&tmp_out[16], rt, 5);
+        memcpy(&tmp_out[21], rs, 5); 
 
       if(strcmp(inst, "lw") == 0)
-        strncpy(&tmp_out[26], "110001", 6);
+        memcpy(&tmp_out[26], "110001", 6);
       else if(strcmp(inst, "sw") == 0)
-        strncpy(&tmp_out[26], "110101", 6);
+        memcpy(&tmp_out[26], "110101", 6);
       else if(strcmp(inst, "beq") == 0)
-        strncpy(&tmp_out[26], "001000", 6);
+        memcpy(&tmp_out[26], "001000", 6);
       else if(strcmp(inst, "addi") == 0)
-        strncpy(&tmp_out[26], "000100", 6);
+        memcpy(&tmp_out[26], "000100", 6);
       
     }
     else if(strcmp(inst, "and") == 0 || strcmp(inst, "or") == 0 ||
@@ -374,35 +375,35 @@ int get_instructions(BIT Instructions[][32])
       if(strcmp(inst, "jr") == 0)
         strcpy(rs, rd);
       
-      strncpy(&tmp_out[6], "00000", 5);
-      strncpy(&tmp_out[11], rd, 5);
-      strncpy(&tmp_out[16], rt, 5);
-      strncpy(&tmp_out[21], rs, 5);
+      memcpy(&tmp_out[6], "00000", 5);
+      memcpy(&tmp_out[11], rd, 5);
+      memcpy(&tmp_out[16], rt, 5);
+      memcpy(&tmp_out[21], rs, 5);
 
       if(strcmp(inst, "and") == 0) 
-        strncpy(&tmp_out[0], "001001", 6);
+        memcpy(&tmp_out[0], "001001", 6);
       else if(strcmp(inst, "or") == 0) 
-        strncpy(&tmp_out[0], "101001", 6);
+        memcpy(&tmp_out[0], "101001", 6);
       else if(strcmp(inst, "add") == 0) 
-        strncpy(&tmp_out[0], "000001", 6);
+        memcpy(&tmp_out[0], "000001", 6);
       else if(strcmp(inst, "sub") == 0) 
-        strncpy(&tmp_out[0], "010001", 6);
+        memcpy(&tmp_out[0], "010001", 6);
       else if(strcmp(inst, "slt") == 0) 
-        strncpy(&tmp_out[0], "010101", 6);
+        memcpy(&tmp_out[0], "010101", 6);
       else if(strcmp(inst, "jr") == 0) 
-        strncpy(&tmp_out[0], "000100", 6);
+        memcpy(&tmp_out[0], "000100", 6);
       
-      strncpy(&tmp_out[26], "000000", 6); 
+      memcpy(&tmp_out[26], "000000", 6); 
     }
     else if(strcmp(inst, "j") == 0 || strcmp(inst, "jal") == 0)
     { //J-Type Bin: op address
       convert_to_binary_char(atoi(op1), address, 26);
-      strncpy(&tmp_out[0], address, 26);
+      memcpy(&tmp_out[0], address, 26);
 
       if(strcmp(inst, "j") == 0)
-        strncpy(&tmp_out[26], "010000", 6);  
+        memcpy(&tmp_out[26], "010000", 6);  
       else if(strcmp(inst, "jal") == 0)
-        strncpy(&tmp_out[26], "110000", 6);  
+        memcpy(&tmp_out[26], "110000", 6);  
     }
 
     for (int i = 0; i < 32; ++i)
