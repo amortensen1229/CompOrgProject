@@ -1,8 +1,5 @@
 
-o.o
-arith.out
-arith.txt
-fib.out
-fib.txt
-load_store.out
-load_store.txt
+*.out
+*.txt
+*.o
+out.txt
