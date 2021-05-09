@@ -61,7 +61,7 @@ int get_instructions(BIT Instructions[][32]);
 void Instruction_Memory(BIT* ReadAddress, BIT* Instruction);
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
-  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Immediate);
+  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Immediate, BIT* JumpLink, BIT* JumpReturn);
 void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   BIT* ReadData1, BIT* ReadData2);
 void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData);
@@ -426,17 +426,19 @@ BIT MEM_Instruction[32][32] = {FALSE};
 BIT MEM_Data[32][32]        = {FALSE};
 BIT MEM_Register[32][32]    = {FALSE};
 
-BIT RegDst    = FALSE;
-BIT Jump      = FALSE;
-BIT Branch    = FALSE;
-BIT MemRead   = FALSE;
-BIT MemToReg  = FALSE;
-BIT ALUOp[2]  = {FALSE};
-BIT MemWrite  = FALSE;
-BIT ALUSrc    = FALSE;
-BIT RegWrite  = FALSE;
-BIT Zero      = FALSE;
-BIT Immediate = FALSE;
+BIT RegDst     = FALSE;
+BIT Jump       = FALSE;
+BIT Branch     = FALSE;
+BIT MemRead    = FALSE;
+BIT MemToReg   = FALSE;
+BIT ALUOp[2]   = {FALSE};
+BIT MemWrite   = FALSE;
+BIT ALUSrc     = FALSE;
+BIT RegWrite   = FALSE;
+BIT Zero       = FALSE;
+BIT Immediate  = FALSE;
+BIT JumpLink   = FALSE;
+BIT JumpReturn = FALSE;
 BIT ALUControl[4] = {FALSE};
 BIT ReadDataMemory[32];
 
@@ -499,7 +501,7 @@ void adder1(BIT A, BIT B, BIT CarryIn, BIT* CarryOut, BIT* Sum)
 
 void Control(BIT* OpCode,
   BIT* RegDst, BIT* Jump, BIT* Branch, BIT* MemRead, BIT* MemToReg,
-  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Immediate)
+  BIT* ALUOp, BIT* MemWrite, BIT* ALUSrc, BIT* RegWrite, BIT* Immediate, BIT* JumpLink, BIT* JumpReturn)
 {
   // OpCode Shorthand
   BIT A = OpCode[5];
@@ -516,7 +518,7 @@ void Control(BIT* OpCode,
   BIT is_addi = and_gate(and_gate3(not_gate(A), not_gate(B), C), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
 
   BIT is_j = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, not_gate(F)));
-  //BIT is_jal = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, F));
+  BIT is_jal = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), E, F));
   BIT is_jr = and_gate(and_gate3(not_gate(A), not_gate(B), not_gate(C)), and_gate3(not_gate(D), not_gate(E), not_gate(F)));
 
 
@@ -547,6 +549,8 @@ void Control(BIT* OpCode,
   ALUOp[0] = is_beq;
 
   //SOP Representation:
+  *JumpReturn = is_jr;
+  *JumpLink = is_jal;
   *Immediate = is_addi;
   *ALUSrc = or_gate3(is_lw, is_sw, or_gate(is_addi, is_beq));
   *RegDst = is_r_format;
@@ -572,7 +576,6 @@ void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
   // Input: two 5-bit register addresses
   // Output: the values of the specified registers in ReadData1 and ReadData2
   // Note: Implementation will be very similar to instruction memory circuit
-          // printf("ReadData1: %d\n", binary_to_integer(ReadData1));
   BIT index1[32];
   BIT index2[32];
 
@@ -583,8 +586,8 @@ void Read_Register(BIT* ReadRegister1, BIT* ReadRegister2,
       ReadData1[j] = multiplexor2(index1[i], ReadData1[j], MEM_Register[i][j]);
       ReadData2[j] = multiplexor2(index2[i], ReadData2[j], MEM_Register[i][j]);
     }
-
   }  
+
   
 }
 
@@ -592,6 +595,7 @@ void Write_Register(BIT RegWrite, BIT* WriteRegister, BIT* WriteData)
 {
   BIT index[32];
   decoder5(WriteRegister, index);
+
   for(int i = 0;i < 32; i++) {
     for (int j = 0; j < 32; ++j){
       MEM_Register[i][j] = multiplexor2(and_gate(index[i], RegWrite), MEM_Register[i][j], WriteData[j]);
@@ -614,7 +618,7 @@ void ALU_Control(BIT* ALUOp, BIT* funct, BIT* ALUControl)
   
   // Hardcode First bit - ALWAY FALSE:
   ALUControl[3] = FALSE;
-
+  //printf("FUNCT CODE: %d%d%d%d%d%d\n", funct[5],funct[4], funct[3], funct[2], funct[1], funct[0]);
   
   BIT is_add_funct = and_gate(and_gate3(and_gate3(funct[5], not_gate(funct[4]), not_gate(funct[3])), not_gate(funct[2]), not_gate(funct[1])),not_gate(funct[0]));
   BIT is_sub_funct = and_gate(and_gate3(and_gate3(funct[5], not_gate(funct[4]), not_gate(funct[3])), not_gate(funct[2]), funct[1]),not_gate(funct[0]));
@@ -659,11 +663,7 @@ void ALU1(BIT A, BIT B, BIT Binvert, BIT CarryIn, BIT Less,
 }
 
 void ALU(BIT* ALUControl, BIT* Input1, BIT* Input2, BIT* Zero, BIT* Result)
-{   
-  // TODO: Implement 32-bit ALU
-  // Input: 4-bit ALUControl, two 32-bit inputs
-  // Output: 32-bit result, and zero flag big
-  // Note: Can re-use prior implementations (but need new circuitry for zero)
+{ 
   BIT Set=FALSE;
   BIT carryout_temp = FALSE;
   BIT Binvert;
@@ -741,7 +741,6 @@ void updateState()
   // Memory - read/write data memory
   // Write Back - write to the register file
   // Update PC - determine the final PC value for the next instruction
-
   BIT Instruction[32];
   BIT funct[6];
   BIT ReadRegister1In[5];
@@ -752,6 +751,7 @@ void updateState()
   BIT signExtendInput[16];
   BIT signExtendOutput[32];
   BIT OpCode[6];
+  
     Instruction_Memory(PC, Instruction);
     for(int k = 0; k < 5; k++){
       //Indstruction [25 -21]
@@ -771,7 +771,7 @@ void updateState()
     }
 
     // Run Control function to set lines
-    Control(OpCode,&RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp,  &MemWrite,  &ALUSrc,  &RegWrite, &Immediate);
+    Control(OpCode,&RegDst, &Jump, &Branch, &MemRead, &MemToReg, ALUOp,  &MemWrite,  &ALUSrc,  &RegWrite, &Immediate, &JumpLink, &JumpReturn);
 
     // Read data from regisers
     Read_Register(ReadRegister1In,ReadRegister2In,ReadData1,ReadData2);
@@ -784,7 +784,7 @@ void updateState()
     for(int i = 0; i < 16; i++){
       signExtendInput[i] = Instruction[i];
     }
-
+    BIT is_jr_funct = and_gate(and_gate3(and_gate3(not_gate(funct[5]), not_gate(funct[4]), funct[3]), not_gate(funct[2]), not_gate(funct[1])), not_gate(funct[0]));
     Extend_Sign16(signExtendInput, signExtendOutput);
 
 
@@ -812,7 +812,9 @@ void updateState()
     
     Data_Memory(MemWrite, MemRead, ALUResult, ReadData2, ReadDataMemory);
     BIT mux_output[5];
-
+    //printf("RegDSt: %d\n", RegDst);
+    //printf("ReadRegister2In: %d%d%d%d%d\n", ReadRegister2In[4], ReadRegister2In[3], ReadRegister2In[2], ReadRegister2In[1], ReadRegister2In[0]);
+    //printf("WriteRegisterIn: %d%d%d%d%d\n", WriteRegisterIn[4], WriteRegisterIn[3], WriteRegisterIn[2], WriteRegisterIn[1], WriteRegisterIn[0]);
     for (int j = 0; j < 5; ++j) {
       mux_output[j] = multiplexor2(RegDst, ReadRegister2In[j], WriteRegisterIn[j]);
     }
@@ -822,35 +824,69 @@ void updateState()
     for (int j = 0; j < 32; ++j) {
       temp[j] = multiplexor2(MemToReg, ALUResult[j], ReadDataMemory[j]);
     }
-
-    Write_Register(RegWrite, mux_output, temp);
+    //printf("MUX_OUTPUT: %d%d%d%d%d\n", mux_output[4], mux_output[3], mux_output[2], mux_output[1], mux_output[0]);
+    Write_Register(and_gate(RegWrite, not_gate(is_jr_funct)), mux_output, temp);
 
 
     BIT OpAlu[4] = {FALSE, TRUE, FALSE, FALSE};  //Add opcode for PC increment
     BIT Zero_temp[32]; 
     BIT PC_temp[32];
+    BIT PC_branch[32];
     
 
     //Increment PC and store in PC_temp
     ALU(OpAlu, PC, ONE, Zero_temp, PC_temp);
 
-    // Determine if PC will update to next instruction or to branch address
+    // Increment PC for beq opperation offsets:
+    ALU(OpAlu, PC_temp, signExtendOutput, Zero_temp, PC_branch);
+    
+    // Determine if we should copy over RA to PC:
+    BIT ReturnAddress[5] = {TRUE, TRUE, TRUE, TRUE, TRUE};
+    Write_Register(JumpLink, ReturnAddress, PC_temp);
+    
+    //SOP representation to determine how to update PC
+    //BIT determine_PC_update = or_gate3(and_gate(Zero,Branch), Jump, JumpLink);
+  
+
+    // Determine if PC will update to next instruction or to branch
     for(int i = 0; i < 32; i++){
-      PC[i] = multiplexor2(and_gate(Zero,Branch), PC_temp[i], signExtendOutput[i]);
+      PC[i] = multiplexor2(and_gate(Zero,Branch), PC_temp[i], PC_branch[i]);
     } 
     
-    // COMMENTED THESE NOODLES OUT, IDK What they do??
-    /* 
-    BIT ALU_result[32];
+    //Check if jal:
+    for(int i = 0; i < 32; i++){
+      PC[i] = multiplexor2(or_gate(JumpLink, Jump), PC[i], signExtendOutput[i]);
+    } 
+   
+    //Check if jr
+    // Read ReturnRegister Address:
+    BIT RA[32];
+    Read_Register(ReturnAddress, ZERO, RA, Zero_temp);
+    //001000
+    //printf("ALUSRC: %d\n", ALUSrc);
+    //printf("ALuCOntrol: %d%d%d%d\n", ALUControlOuput[3], ALUControlOuput[2], ALUControlOuput[1], ALUControlOuput[0]);
+    //printf("BEFORE RA: %d\n", binary_to_integer(RA));
+    //printf("JUMPRETURN: %d\n", and_gate(JumpReturn, is_jr_funct));
+    for (int i = 0; i < 32; i++) {
+      PC[i] = multiplexor2(and_gate(JumpReturn, is_jr_funct), PC[i], RA[i]);
+    }
+    //printf("AFTER RA: %d\n", binary_to_integer(RA));
     
+
+
+    // COMMENTED THESE NOODLES OUT, IDK What they do??
+    
+    //BIT ALU_result[32];
+    /*
     ALU(OpAlu, signExtendOutput,PC_temp, Zero_temp, ALU_result ); 
     BIT mux_out[32]; 
 
     multiplexor2_32(and_gate(Zero,Branch), PC_temp, ALU_result, mux_out);
 
     BIT mux_output_arr[32]; 
-    multiplexor2_32(Jump, PC_temp ,mux_out, mux_output_arr);  
-    */
+    multiplexor2_32(Jump, PC_temp ,mux_out, mux_output_arr); 
+    */ 
+  
 }
 
 
